@@ -22,9 +22,9 @@
 
 入口地址：[https://movie.douban.com/top250](https://movie.douban.com/top250)
 
-![内容区](C:\dev\py\实例\py_douban 爬虫记录\内容区.PNG)
+![内容区](https://ooo.0o0.ooo/2017/06/17/5944d7cd5990f.png)
 
-![span内容](C:\dev\py\实例\py_douban 爬虫记录\span内容.PNG)
+![span内容](https://ooo.0o0.ooo/2017/06/17/5944d7cd5cd02.png)
 
 如图所示，抓取信息对应如下：
 
@@ -107,7 +107,7 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
 
 1. 自定义下载图片方法
 
-   ![图片效果](C:\dev\py\实例\py_douban 爬虫记录\图片效果.PNG)
+   ![图片效果](https://ooo.0o0.ooo/2017/06/17/5944d7cd76e80.png)
 
    ```python
    # 自定义方法下载图片
@@ -208,7 +208,7 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
 
    前提是装好mongodb，这部分请自行解决。可视化工具推荐Robomongo，本项目保存结果及实现方法：
 
-   ![mongodb截图](C:\dev\py\实例\py_douban 爬虫记录\mongodb截图.PNG)
+   ![mongodb截图](https://ooo.0o0.ooo/2017/06/17/5944d7cd5e293.png)
 
    ```python
    # 保存内容至MONGODB数据库
