@@ -9,49 +9,45 @@ import MySQLdb.cursors
 from firsttest import settings
 from firsttest.items import DoubanTopMoviesItem
 
+# 自定义方法下载图片
 class FirsttestPipeline(object):
-    def _createmovieImageName(self, items):
-        namelist = []
-        lengh = len(items['topid'])
-        for i in range(lengh):
-            namelist.append(items['topid'][i] + "-" + items['title_ch'][i] + ".jpg")
-        return namelist
+    # 电影封面命名：序号加电影名
+    def _createmovieImageName(self, item):
+        lengh = len(item['topid'])
+        return [item['topid'][i] + "-" + item['title_ch'][i] + ".jpg" for i in range(lengh)]
 
-    def _createImagenameByURL(self, image_url):
-        list_name = image_url.split('/')
-        file_name = list_name[len(list_name) - 1]
-        return file_name
+    # 另一种命名法，取图片链接中名字
+    # def _createImagenameByURL(self, image_url):
+    #     file_name = image_url.split('/')[-1]
+    #     return file_name
 
     def process_item(self, item, spider):
         namelist = self._createmovieImageName(item)
-        # print(namelist)
-        dir_path = '%s/%s' % (settings.IMAGES_STORE, spider.name)  # 存储路径
+        dir_path = '%s/%s' % (settings.IMAGES_STORE, spider.name)
         # print('dir_path', dir_path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         for i in range(len(namelist)):
             image_url = item['image_urls'][i]
             file_name = namelist[i]
-            # print(image_url)
             file_path = '%s/%s' % (dir_path, file_name)
-            if os.path.exists(file_name):
+            if os.path.exists(file_path):
+                print("重复，跳过：" + image_url)
                 continue
             with open(file_path, 'wb') as file_writer:
                 print("正在下载："+image_url)
-                conn = urllib.request.urlopen(image_url)  # 下载图片
+                conn = urllib.request.urlopen(image_url)
                 file_writer.write(conn.read())
             file_writer.close()
         return item
 
+# 保存内容至MYSQL数据库
 class DoubanmoviePipeline(object):
     def __init__(self, dbpool):
         self.dbpool = dbpool
 
     @classmethod
     def from_settings(cls, settings):
-        '''1、@classmethod声明一个类方法，而对于平常我们见到的则叫做实例方法。返回数据库连接池dbpool
-           2、类方法的第一个参数cls（class的缩写，指这个类本身），而实例方法的第一个参数是self，表示该类的一个实例
-           3、可以通过类来调用，就像C.f()，相当于java中的静态方法'''
         dbparams = dict(
             host=settings['MYSQL_HOST'],
             port=settings['MYSQL_PORT'],
@@ -62,13 +58,15 @@ class DoubanmoviePipeline(object):
             cursorclass=MySQLdb.cursors.DictCursor,
             use_unicode=False,
         )
-        dbpool = adbapi.ConnectionPool('MySQLdb', **dbparams)  # **表示将字典扩展为关键字参数,相当于host=xxx,db=yyy...
-        return cls(dbpool)  # 相当于dbpool付给了这个类，self中可以得到
+        dbpool = adbapi.ConnectionPool('MySQLdb', **dbparams)  # **表示将字典扩展为关键字参数
+        return cls(dbpool)
 
     # pipeline默认调用
     def process_item(self, item, spider):
-        query=self.dbpool.runInteraction(self._conditional_insert,item)#调用插入的方法
-        query.addErrback(self._handle_error,item,spider)#调用异常处理方法
+        # 调用插入的方法
+        query=self.dbpool.runInteraction(self._conditional_insert,item)
+        # 调用异常处理方法
+        query.addErrback(self._handle_error,item,spider)
         return item
 
     def _conditional_insert(self, tx, item):
@@ -82,22 +80,46 @@ class DoubanmoviePipeline(object):
         print(e)
 
 
+# 保存内容至MONGODB数据库
 class MongoDBPipeline( object):
-    # client = MongoClient('localhost',27017)
-    mongo_uri_no_auth = 'mongodb://localhost:27017/'  # mongo没有账号密码验证的时候用这个
+    mongo_uri_no_auth = 'mongodb://localhost:27017/' # 没有账号密码验证
     database_name = 'yun'
-    table_name = 'coll'  # 你要查询的表名，请自行替换你需要的表名
+    table_name = 'coll'
     client = MongoClient(mongo_uri_no_auth)  # 创建了与mongodb的连接
     db = client[database_name]
     table = db[table_name]  # 获取数据库中表的游标
 
     def process_item(self, item, spider):
         valid = True
-        # print(item)
         for data in item:
           if not data:
               valid = False
               raise DropItem("Missing {0}!".format(data))
         if valid:
               self.table.insert(dict(item))
+        return item
+
+
+from scrapy.contrib.pipeline.images import ImagesPipeline
+from scrapy.http import Request
+from scrapy.exceptions import DropItem
+
+# 用Scrapy内置的ImagesPipeline类下载图片
+class MyImagesPipeline(ImagesPipeline):
+    def file_path(self, request, response=None, info=None):
+        image_name = request.url.split('/')[-1]
+        return 'doubanmovie2/%s' % (image_name)
+
+    # 从item获取url，返回request对象给pipeline处理
+    def get_media_requests(self, item, info):
+        for image_url in item['image_urls']:
+            yield Request(image_url)
+
+    # pipeline处理request对象，完成下载后，将results传给item_completed
+    def item_completed(self, results, item, info):
+        image_paths = [x['path'] for ok, x in results if ok]
+        # print(image_paths)
+        if not image_paths:
+            raise DropItem("Item contains no images")
+        # item['image_paths'] = image_paths
         return item
