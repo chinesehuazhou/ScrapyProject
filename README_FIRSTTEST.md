@@ -107,6 +107,8 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
 
 1. 自定义下载图片方法
 
+   ![图片效果](C:\dev\py\实例\py_douban 爬虫记录\图片效果.PNG)
+
    ```python
    # 自定义方法下载图片
    class FirsttestPipeline(object):
