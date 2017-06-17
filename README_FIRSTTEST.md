@@ -9,7 +9,7 @@
 
 ## 项目目录
 
-![项目目录](C:\dev\py\实例\py_douban 爬虫记录\项目目录.PNG)
+![项目目录](https://ooo.0o0.ooo/2017/06/17/5944d7cd1e913.png)
 
 + spiders/sp_douban.py:处理链接，解析item部分
 + items.py:豆瓣top250电影字段
