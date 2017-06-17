@@ -1,4 +1,11 @@
-学习python，爬虫是一种简单上手的方式，应该也是一个必经阶段。本项目用Scrapy框架实现了抓取豆瓣top250电影，并将图片及其它信息保存下来。
+学习python时，爬虫是一种简单上手的方式，应该也是一个必经阶段。本项目用Scrapy框架实现了抓取豆瓣top250电影，并将图片及其它信息保存下来。爬取豆瓣top250电影不需要登录、没有JS解析、而且只有10页内容，用来练手，太合适不过了。
+
+## 我的开发环境
+
+- WIN10  64位系统
+- Python 3.6.1
+- PyCharm、Sublime Text
+- Mysql、MongoDB，可视化：DbVisualizer、Robomongo
 
 ## 项目目录
 
@@ -6,13 +13,14 @@
 
 + spiders/sp_douban.py:处理链接，解析item部分
 + items.py:豆瓣top250电影字段
-+ middlewares.py:从维护的UserAgent池中随机选取
++ middlewares.py、user_agents.py:从维护的UserAgent池中随机选取
 + settings.py:配置文件
 + main.py:免去在命令行输入运行指令
 
 
-
 ## 页面抓取内容分析
+
+入口地址：[https://movie.douban.com/top250](https://movie.douban.com/top250)
 
 ![内容区](C:\dev\py\实例\py_douban 爬虫记录\内容区.PNG)
 
@@ -55,6 +63,8 @@ item['topid'] = response.xpath('//div[@class="pic"]/em/text()').extract()
 
 ## 爬取链接的三种方式
 
+第二页的链接格式是：[https://movie.douban.com/top250?start=25&filter=](https://movie.douban.com/top250?start=25&filter=) ，每页25部电影，所以翻页就是依次加25
+
 1. 重写start_requests方法
 
 ``` python
@@ -91,9 +101,9 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
               ]
 ```
 
-## 下载保存内容
+## 下载及保存内容
 
-综合其他人的教程，本项目集成了多种保存方法，包括保存电影封面、存入MYSQL、存入MONGODB。在settings里配置了ITEM_PIPELINES，用到那种方式，就把注释去掉即可。
+综合其他人的教程，本项目集成了多种保存方法，包括保存电影封面至本地、存入MYSQL、存入MONGODB。在settings里配置了ITEM_PIPELINES，用到那种方式，就把注释去掉即可。
 
 1. 自定义下载图片方法
 
@@ -131,7 +141,6 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
            return item
    ```
 
-   ​
 
 
 2. 保存内容至MYSQL数据库
@@ -192,8 +201,6 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
            print(e)
    ```
 
-   ​
-
 
 3. 保存内容至MONGODB数据库
 
@@ -222,11 +229,9 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
            return item
    ```
 
-   ​
-
 4. 用内置的ImagesPipeline类下载图片
 
-   Scrapy自带的ImagesPipeline 实现起来也很简单。不过，比较下来，速度不及自定义的方法，不知是否哪里写的不对。若
+   Scrapy自带的ImagesPipeline 实现起来也很简单。不过，比较下来，速度不及自定义的方法，不知是否哪里写的不对。若有高手发现，欢迎指出原因。
 
    ```python
    from scrapy.contrib.pipeline.images import ImagesPipeline
@@ -236,8 +241,8 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
    # 用Scrapy内置的ImagesPipeline类下载图片
    class MyImagesPipeline(ImagesPipeline):
        def file_path(self, request, response=None, info=None):
-           image_guid = request.url.split('/')[-1]
-           return 'full/%s' % (image_guid)
+           image_name = request.url.split('/')[-1]
+           return 'doubanmovie2/%s' % (image_name)
 
        # 从item获取url，返回request对象给pipeline处理
        def get_media_requests(self, item, info):
@@ -257,6 +262,15 @@ rules = [Rule(LinkExtractor(allow=(r'https://movie.douban.com/top250\?start=\d+.
 
 ## 其它
 
+``` python
+from scrapy.selector import Selector
+Selector(response).xpath('//span/text()').extract()
+# 等价于下面写法：
+response.selector.xpath('//span/text()').extract() # .selector 是response对象的属性
+# 也等价于下面写法（进一步简化）：
+response.xpath('//span/text()').extract()
+```
 
+完整项目代码见[Github](https://github.com/chinesehuazhou/ScrapyProject)
 
-​觉得有所帮助的话，给个star :eight_pointed_black_star: 吧
+觉得对你有所帮助的话，给个star ​:eight_pointed_black_star:​ 吧
